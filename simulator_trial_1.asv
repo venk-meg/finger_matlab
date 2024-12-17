@@ -47,8 +47,7 @@ R2 = 0.002;
 % f = @(t) [0.007355*exp(-5*t); 0.007355*exp(-5*t); 0.007355*exp(-5*t); 0.007355*exp(-5*t)];
 % % f = @(t) [0.005*exp(-5*t); 0.007*exp(-5*t); 0.007*exp(-5*t); 0.007*exp(-5*t)];
 % f = @(t) [0.007*exp(-5*t); 0.000*exp(-5*t); 0.000*exp(-5*t); 0.007*exp(-5*t)];
-% f = @(t) [0.7*exp(-5*t); 0.00*exp(-5*t); 0.00*exp(-5*t); 0.7*exp(-5*t)];
-f = @(t) [0.007355; 0.007355; 0.007355; 0.007355];
+f = @(t) [0.00*exp(-5*t); 0.000*exp(-5*t); 0.000*exp(-5*t); 0.00*exp(-5*t)];
 
 %% Kinematics: Nonlinear Tendon Extension Functions
 % According to the snippet (for θ1 > 0):
@@ -98,8 +97,8 @@ M_theta = @(th) [a_m+2*b_m*cos(th(2)), d_m+b_m*cos(th(2));
 C_theta = @(th, thd) [ -b_m*sin(th(2))*thd(2), -b_m*sin(th(2))*(thd(1)+thd(2));
                         b_m*sin(th(2))*thd(1), 0 ];
 
-N_theta = @(th) [-(m1*g*lc1*cos(th(1)) + m2*g*L1*cos(th(1)))+m2*g*lc2*cos(th(1)-th(2));
-                 -m2*g*lc2*cos(th(1)-th(2))];
+N_theta = @(th) [-(m1*g*lc1*cos(th(1)) + m2*g*(L1*cos(th(1))+lc2*(sin(th(1))+cos(th(2)))));
+                 -m2*g*lc2*sin(th(1))+cos(th(2))];
 
 % Equation of motion:
 % M(theta)*ddtheta + C(theta,theta_dot)*theta_dot + N(theta) = P(theta)*f
@@ -109,7 +108,7 @@ theta_ddot_func = @(th, thd, t) M_theta(th)\(P_theta(th)*f(t) - C_theta(th, thd)
 
 %% Simulation Parameters
 tmax = 1;  
-dt = 0.001;
+dt = 0.01;
 n = round(tmax/dt);
 t = linspace(0, tmax, n);
 
@@ -222,6 +221,6 @@ for i=1:10:n
     set(link1_plot, 'XData',[0,x1],'YData',[0,y1]);
     set(link2_plot, 'XData',[x1,x2],'YData',[y1,y2]);
 
-    pause(.05);
+    pause(.03);
     drawnow;
 end
