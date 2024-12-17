@@ -136,6 +136,42 @@ end
 
 theta_ddot(:, end) = theta_ddot_func(theta(:, end), theta_dot(:, end), t(end));
 
+% Desired limits in radians
+theta1_min = deg2rad(0);
+theta1_max = deg2rad(90);
+theta2_min = deg2rad(-90);
+theta2_max = deg2rad(0);
+
+for i = 1:n-1
+    f_current = f(t(i)); % Compute time-varying force
+    theta_ddot(:, i) = M_theta(theta(:, i))\(P_theta(theta(:, i))*f_current ...
+                       - C_theta(theta(:, i), theta_dot(:, i))*theta_dot(:, i) ...
+                       - N_theta(theta(:, i)));
+    theta_dot(:, i+1) = theta_dot(:, i) + theta_ddot(:, i)*dt;
+    theta_temp = theta(:, i) + theta_dot(:, i)*dt;
+    
+    % Clamp joint 1 angle
+    if theta_temp(1) > theta1_max
+        theta_temp(1) = theta1_max;
+        theta_dot(1, i+1) = 0; % Optionally reset velocity if hitting stop
+    elseif theta_temp(1) < theta1_min
+        theta_temp(1) = theta1_min;
+        theta_dot(1, i+1) = 0;
+    end
+    
+    % Clamp joint 2 angle
+    if theta_temp(2) > theta2_max
+        theta_temp(2) = theta2_max;
+        theta_dot(2, i+1) = 0;
+    elseif theta_temp(2) < theta2_min
+        theta_temp(2) = theta2_min;
+        theta_dot(2, i+1) = 0;
+    end
+    
+    theta(:, i+1) = theta_temp;
+end
+
+
 %% Plot Results
 figure;
 subplot(3,1,1);
@@ -185,6 +221,6 @@ for i=1:10:n
     set(link1_plot, 'XData',[0,x1],'YData',[0,y1]);
     set(link2_plot, 'XData',[x1,x2],'YData',[y1,y2]);
 
-    pause(0.1);
+    pause(.5);
     drawnow;
 end
