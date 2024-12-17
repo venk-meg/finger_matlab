@@ -14,6 +14,12 @@ W2 = 0.13; % [m]
 H2 = 0.11; % [m]
 m2 = 0.007;  % [kg]
 
+% Link 2 dimensions
+L3 = 0.23;  % [m]
+W3 = 0.12; % [m]
+H3 = 0.11; % [m]
+m3 = 0.006;  % [kg]
+
 % Gravity
 g = -9.81; % [m/s^2]
 % g = 0; % [m/s^2]
@@ -47,7 +53,8 @@ R2 = 0.002;
 % f = @(t) [0.007355*exp(-5*t); 0.007355*exp(-5*t); 0.007355*exp(-5*t); 0.007355*exp(-5*t)];
 % % f = @(t) [0.005*exp(-5*t); 0.007*exp(-5*t); 0.007*exp(-5*t); 0.007*exp(-5*t)];
 % f = @(t) [0.007*exp(-5*t); 0.000*exp(-5*t); 0.000*exp(-5*t); 0.007*exp(-5*t)];
-f = @(t) [0.00*exp(-5*t); 0.000*exp(-5*t); 0.000*exp(-5*t); 0.00*exp(-5*t)];
+% f = @(t) [0.7*exp(-5*t); 0.00*exp(-5*t); 0.00*exp(-5*t); 0.7*exp(-5*t)];
+f = @(t) [0.007355; 0.007355; 0.007355; 0.007355];
 
 %% Kinematics: Nonlinear Tendon Extension Functions
 % According to the snippet (for θ1 > 0):
@@ -91,14 +98,31 @@ a_m = m1*lc1^2 + m2*(L1^2+lc2^2) + I1 + I2;
 b_m = m2*L1*lc2;
 d_m = m2*lc2^2 + I2;
 
-M_theta = @(th) [a_m+2*b_m*cos(th(2)), d_m+b_m*cos(th(2));
-                 d_m+b_m*cos(th(2)),   d_m];
+% Now add Link 3, which is rigidly attached at the end of Link 2:
+% The center of mass of Link 3 is at (L1, L2+lc3) from the first joint.
+% For the total system:
+% a_new = a + m3*(L1^2 + (L2+lc3)^2) + I3
+% b_new = b + m3*L1*(L2+lc3)
+% d_new = d + m3*(L2+lc3)^2 + I3
 
-C_theta = @(th, thd) [ -b_m*sin(th(2))*thd(2), -b_m*sin(th(2))*(thd(1)+thd(2));
-                        b_m*sin(th(2))*thd(1), 0 ];
+a_orig = m1*lc1^2 + m2*(L1^2+lc2^2) + I1 + I2;
+b_orig = m2*L1*lc2;
+d_orig = m2*lc2^2 + I2;
 
-N_theta = @(th) [-(m1*g*lc1*cos(th(1)) + m2*g*(L1*cos(th(1))+lc2*(sin(th(1))+cos(th(2)))));
-                 -m2*g*lc2*sin(th(1))+cos(th(2))];
+a_new = a_orig + m3*(L1^2 + (L2+lc3)^2) + I3;
+b_new = b_orig + m3*L1*(L2+lc3);
+d_new = d_orig + m3*(L2+lc3)^2 + I3;
+
+% Mass Matrix
+M_theta = @(th) [a_new+2*b_new*cos(th(2)), d_new+b_new*cos(th(2));
+                 d_new+b_new*cos(th(2)),   d_new];
+
+% Coriolis Matrix remains structurally the same, just with updated parameters
+C_theta = @(th, thd) [ -b_new*sin(th(2))*thd(2), -b_new*sin(th(2))*(thd(1)+thd(2));
+                        b_new*sin(th(2))*thd(1), 0 ];
+
+N_theta = @(th) [-(m1*g*lc1*cos(th(1)) + m2*g*L1*cos(th(1)))+m2*g*lc2*cos(th(1)-th(2)) + m3*g*(L1*cos(th(1))+(L2+lc3)*cos(th(1)-2*th(2))));
+                 -m2*g*lc2*cos(th(1)-th(2))];
 
 % Equation of motion:
 % M(theta)*ddtheta + C(theta,theta_dot)*theta_dot + N(theta) = P(theta)*f
@@ -108,7 +132,7 @@ theta_ddot_func = @(th, thd, t) M_theta(th)\(P_theta(th)*f(t) - C_theta(th, thd)
 
 %% Simulation Parameters
 tmax = 1;  
-dt = 0.01;
+dt = 0.001;
 n = round(tmax/dt);
 t = linspace(0, tmax, n);
 
@@ -221,6 +245,6 @@ for i=1:10:n
     set(link1_plot, 'XData',[0,x1],'YData',[0,y1]);
     set(link2_plot, 'XData',[x1,x2],'YData',[y1,y2]);
 
-    pause(.03);
+    pause(.05);
     drawnow;
 end
