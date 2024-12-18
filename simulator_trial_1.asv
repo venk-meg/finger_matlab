@@ -8,21 +8,17 @@ W1 = 0.18; % [m]
 H1 = 0.15; % [m]
 m1 = 0.012;  % [kg]
 
+floor = true;
+
 % Link 2 dimensions
 L2 = 0.25;  % [m]
 W2 = 0.13; % [m]
 H2 = 0.11; % [m]
 m2 = 0.007;  % [kg]
 
-% Link 2 dimensions
-L3 = 0.23;  % [m]
-W3 = 0.12; % [m]
-H3 = 0.11; % [m]
-m3 = 0.006;  % [kg]
-
 % Gravity
-g = -9.81; % [m/s^2]
-% g = 0; % [m/s^2]
+% g = -9.81; % [m/s^2]
+g = 0; % [m/s^2]
 
 %% Moments of Inertia via Cuboid Formula
 % Moment of inertia about the z-axis through CM: I_z(cm) = (1/12)*m*(h^2 + w^2)
@@ -54,7 +50,10 @@ R2 = 0.002;
 % % f = @(t) [0.005*exp(-5*t); 0.007*exp(-5*t); 0.007*exp(-5*t); 0.007*exp(-5*t)];
 % f = @(t) [0.007*exp(-5*t); 0.000*exp(-5*t); 0.000*exp(-5*t); 0.007*exp(-5*t)];
 % f = @(t) [0.7*exp(-5*t); 0.00*exp(-5*t); 0.00*exp(-5*t); 0.7*exp(-5*t)];
-f = @(t) [0.007355; 0.007355; 0.007355; 0.007355];
+% f = @(t) [0.07; 0.007355; 0.007355; 0.07];
+% f = @(t) [0.7; 7; 0.0; 0.0];
+f = @(t) [0.7*exp(-5*t); 0.7*exp(-5*t); 0.00*exp(-5*t); 0.7*exp(-5*t)];
+
 
 %% Kinematics: Nonlinear Tendon Extension Functions
 % According to the snippet (for θ1 > 0):
@@ -98,30 +97,13 @@ a_m = m1*lc1^2 + m2*(L1^2+lc2^2) + I1 + I2;
 b_m = m2*L1*lc2;
 d_m = m2*lc2^2 + I2;
 
-% Now add Link 3, which is rigidly attached at the end of Link 2:
-% The center of mass of Link 3 is at (L1, L2+lc3) from the first joint.
-% For the total system:
-% a_new = a + m3*(L1^2 + (L2+lc3)^2) + I3
-% b_new = b + m3*L1*(L2+lc3)
-% d_new = d + m3*(L2+lc3)^2 + I3
+M_theta = @(th) [a_m+2*b_m*cos(th(2)), d_m+b_m*cos(th(2));
+                 d_m+b_m*cos(th(2)),   d_m];
 
-a_orig = m1*lc1^2 + m2*(L1^2+lc2^2) + I1 + I2;
-b_orig = m2*L1*lc2;
-d_orig = m2*lc2^2 + I2;
+C_theta = @(th, thd) [ -b_m*sin(th(2))*thd(2), -b_m*sin(th(2))*(thd(1)+thd(2));
+                        b_m*sin(th(2))*thd(1), 0 ];
 
-a_new = a_orig + m3*(L1^2 + (L2+lc3)^2) + I3;
-b_new = b_orig + m3*L1*(L2+lc3);
-d_new = d_orig + m3*(L2+lc3)^2 + I3;
-
-% Mass Matrix
-M_theta = @(th) [a_new+2*b_new*cos(th(2)), d_new+b_new*cos(th(2));
-                 d_new+b_new*cos(th(2)),   d_new];
-
-% Coriolis Matrix remains structurally the same, just with updated parameters
-C_theta = @(th, thd) [ -b_new*sin(th(2))*thd(2), -b_new*sin(th(2))*(thd(1)+thd(2));
-                        b_new*sin(th(2))*thd(1), 0 ];
-
-N_theta = @(th) [-(m1*g*lc1*cos(th(1)) + m2*g*L1*cos(th(1)))+m2*g*lc2*cos(th(1)-th(2)) + m3*g*(L1*cos(th(1))+(L2+lc3)*cos(th(1)-2*th(2))));
+N_theta = @(th) [-(m1*g*lc1*cos(th(1)) + m2*g*L1*cos(th(1)))+m2*g*lc2*cos(th(1)-th(2));
                  -m2*g*lc2*cos(th(1)-th(2))];
 
 % Equation of motion:
@@ -137,7 +119,7 @@ n = round(tmax/dt);
 t = linspace(0, tmax, n);
 
 % Initial conditions
-theta0 = [deg2rad(80); deg2rad(-90)]; 
+theta0 = [deg2rad(-30); deg2rad(-90)]; 
 theta_dot0 = [0; 0];
 
 theta = zeros(2, n);
@@ -161,8 +143,12 @@ theta_dot(:,1) = theta_dot0;
 theta_ddot(:, end) = theta_ddot_func(theta(:, end), theta_dot(:, end), t(end));
 
 % Desired limits in radians
-theta1_min = deg2rad(0);
-theta1_max = deg2rad(90);
+if floor == true
+    theta1_min = deg2rad(-30);
+else
+    theta1_min = deg2rad(-75);
+end
+theta1_max = deg2rad(10);
 theta2_min = deg2rad(-90);
 theta2_max = deg2rad(0);
 
