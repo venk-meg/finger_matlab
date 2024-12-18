@@ -9,7 +9,7 @@ DIP = [data.DIP_x, data.DIP_y, data.DIP_z];
 tip = [data.tip_x, data.tip_y, data.tip_z];
 
 %% Time vector
-time = (1:height(data))';
+time = (1:height(data))' / 10; % Divide time by 10
 
 %% Calculate joint angles
 % Angle at KNUCKLE (vector between KNUCKLE and PIP vs. horizontal axis)
@@ -25,6 +25,14 @@ PIP_angle = atan2d(vecnorm(cross(p_to_d, d_to_t, 2), 2, 2), dot(p_to_d, d_to_t, 
 %% Calculate angular velocities
 knuckle_angle_velocity = [0; diff(knuckle_angle)]; % Numerical derivative
 PIP_angle_velocity = [0; diff(PIP_angle)]; % Numerical derivative
+
+%% Truncate data for plotting (keep first half of the time series)
+half_idx = floor(height(data) / 2); % Index for half of the data
+time = time(1:half_idx);
+knuckle_angle = knuckle_angle(1:half_idx);
+PIP_angle = PIP_angle(1:half_idx);
+knuckle_angle_velocity = knuckle_angle_velocity(1:half_idx);
+PIP_angle_velocity = PIP_angle_velocity(1:half_idx);
 
 %% Plot results
 figure;
